@@ -8,17 +8,19 @@
 
 1. **获取雨云账号 API Key**
    使用浏览器登录你的雨云账号，在右上角用户头像下拉菜单中进入“用户设置”。
-   
+
    <img src="https://raw.githubusercontent.com/softmanmaker/certbot-rainyun-auth/refs/heads/main/assets/image.png" height="250">
-   
+
    之后进入“API 密钥”选项，如果还没有显示密钥，点击“重新生成”即可看到密钥，记住显示的 API 密钥。
-   
+
    <img src="https://raw.githubusercontent.com/softmanmaker/certbot-rainyun-auth/refs/heads/main/assets/image-1.png" height="200">
-3. **获取 DNS 产品 ID**
+
+2. **获取 DNS 产品 ID**
    进入“域名管理”界面，选择你想要配置证书的域名产品，并记住其产品 ID。
-   
+
    <img src="https://raw.githubusercontent.com/softmanmaker/certbot-rainyun-auth/refs/heads/main/assets/image-2.png" height="150">
-5. **进行证书创建与自动更新相关配置**
+
+3. **进行证书创建与自动更新相关配置**
    在命令行中以 root 身份运行如下命令（可能会需要 sudo）：
    ```bash
     certbot certonly \
@@ -34,6 +36,8 @@
    ```bash
     certbot renew --quiet \
         --force-renewal \
+        --manual \
+        --preferred-challenges dns \
         --manual-auth-hook "python3 </path/to/main.py> auth -k <your_api_key> -i <domain> <id>" \
         --manual-cleanup-hook "python3 </path/to/main.py> clear -k <your_api_key> -i <domain> <id>"
    ```

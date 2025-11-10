@@ -12,7 +12,9 @@ class Domain:
             'x-api-key': apikey
         }
         self.records = dict()
-    def refresh_dns(self):
+    def get_dns(self, force_refresh: bool = False):
+        if not force_refresh and self.records:
+            return
         self.records = dict()
         level = dict()
         page_no = 1
@@ -32,14 +34,14 @@ class Domain:
             if resp['data']['TotalRecords'] < 500:
                 break
             page_no = page_no + 1
-    def get_dns(self):
-        if not self.records:
-            self.refresh_dns()
     def exist_auth_dns(self):
         self.get_dns()
         return '_acme-challenge' in self.records.keys()
-    def add_auth_dns(self, text: str):
-        assert not self.exist_auth_dns(), 'DNS already exists.'
+    def add_auth_dns(self, text: str, strict_mode: bool = True):
+        assert not strict_mode or not self.exist_auth_dns(), 'DNS already exists.'
+        if self.exist_auth_dns():
+            self.modify_auth_dns(text)
+            return
         payload = json.dumps({
             "host": "_acme-challenge",
             "level": 10,
@@ -51,8 +53,11 @@ class Domain:
         response = requests.request('POST', self.url, headers=self.header, data=payload)
         resp = response.json()
         assert resp['code'] == 200, f'HTTP error {resp['code']}'
-    def modify_auth_dns(self, text: str):
-        assert self.exist_auth_dns(), "DNS doesn't exist."
+    def modify_auth_dns(self, text: str, strict_mode: bool = True):
+        assert not strict_mode or self.exist_auth_dns(), "DNS doesn't exist."
+        if not self.exist_auth_dns():
+            self.add_auth_dns(text)
+            return
         payload = json.dumps({
             "host": "_acme-challenge",
             "level": 10,
@@ -65,8 +70,10 @@ class Domain:
         response = requests.request('PATCH', self.url, headers=self.header, data=payload)
         resp = response.json()
         assert resp['code'] == 200, f'HTTP error {resp['code']}'
-    def clear_auth_dns(self):
-        assert self.exist_auth_dns(), "DNS doesn't exist."
+    def clear_auth_dns(self, strict_mode: bool = True):
+        assert not strict_mode or self.exist_auth_dns(), "DNS doesn't exist."
+        if not self.exist_auth_dns():
+            return
         response = requests.request('DELETE', f'{self.url}?record_id={self.records['_acme-challenge']}', headers=self.header)
         resp = response.json()
         assert resp['code'] == 200, f'HTTP error {resp['code']}'
@@ -96,7 +103,7 @@ if __name__ == '__main__':
             domain.modify_auth_dns(authText)
         else:
             domain.add_auth_dns(authText)
-        time.sleep(20)
+        time.sleep(10)
     elif args.action == 'clear':
         if domain.exist_auth_dns():
             domain.clear_auth_dns()
