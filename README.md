@@ -28,18 +28,12 @@
         --preferred-challenges dns \
         --manual-auth-hook "python3 </path/to/main.py> auth -k <your_api_key> -i <domain> <id>" \
         --manual-cleanup-hook "python3 </path/to/main.py> clear -k <your_api_key> -i <domain> <id>" \
-        -d <your.domain> \
         -d <*.your.domain>
    ```
    其中`-i <domain> <id>`与`-d <domain>`部分可以重复任意次，以实现多 DNS 产品的证书自动化。
    完成后，将下方命令加入 root 用户的 crontab，以实现证书定期更新。
    ```bash
-    certbot renew --quiet \
-        --force-renewal \
-        --manual \
-        --preferred-challenges dns \
-        --manual-auth-hook "python3 </path/to/main.py> auth -k <your_api_key> -i <domain> <id>" \
-        --manual-cleanup-hook "python3 </path/to/main.py> clear -k <your_api_key> -i <domain> <id>"
+    certbot renew --quiet --force-renewal
    ```
    同时，也要记得配合更新定期重启反代服务，保证证书正确。
 
