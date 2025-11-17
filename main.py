@@ -4,6 +4,7 @@ import requests
 import argparse
 import tldextract
 import json
+import dns.resolver
 
 class Domain:
     def __init__(self, id: int, apikey: str):
@@ -92,7 +93,7 @@ if __name__ == '__main__':
         apikey = os.environ.get('RAINYUN_APIKEY')
     else:
         apikey = args.key
-    assert apikey, 'Rainyun API key missing. Abort.'
+    assert apikey, 'Rainyun API key is missing. Abort.'
     ids = dict(args.id)
     authDomain = tldextract.extract(os.environ.get('CERTBOT_DOMAIN')).top_domain_under_public_suffix
     assert authDomain in ids.keys(), f'Please provide the id for {authDomain}.'
@@ -103,7 +104,17 @@ if __name__ == '__main__':
             domain.modify_auth_dns(authText)
         else:
             domain.add_auth_dns(authText)
-        time.sleep(10)
+        retry_cnt = 0
+        while retry_cnt < 120:
+            retry_cnt = retry_cnt + 1
+            time.sleep(5)
+            try:
+                txt = dns.resolver.resolve(f'_acme-challenge.{authDomain}', 'TXT')
+                if txt[0].to_text() == f'"{authText}"':
+                    break
+            except dns.resolver.NoAnswer:
+                pass
+            assert retry_cnt < 120, 'DNS resolve timeout.'
     elif args.action == 'clear':
         if domain.exist_auth_dns():
             domain.clear_auth_dns()
